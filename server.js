@@ -27,8 +27,12 @@ function buildHeaders() {
     "User-Agent": USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)],
     "Accept": "application/json, text/plain, */*",
     "Accept-Language": "en-US,en;q=0.9",
+    "Accept-Encoding": "gzip, deflate, br",
     "Referer": "https://frontier.com/buy",
     "Origin": "https://frontier.com",
+    "Sec-Fetch-Site": "same-origin",
+    "Sec-Fetch-Mode": "cors",
+    "Sec-Fetch-Dest": "empty",
   };
 }
 
