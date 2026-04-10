@@ -10,12 +10,27 @@ const crypto = require("crypto");
 const app = express();
 app.use(express.json({ limit: "1mb" }));
 
-const COMMON_HEADERS = {
-  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-  "Accept": "application/json, text/plain, */*",
-  "Referer": "https://frontier.com/buy",
-  "Origin": "https://frontier.com",
-};
+// Rotate User-Agent per request to avoid WAF fingerprinting on a single UA.
+const USER_AGENTS = [
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2.1 Safari/605.1.15",
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:122.0) Gecko/20100101 Firefox/122.0",
+  "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+];
+
+function buildHeaders() {
+  return {
+    "User-Agent": USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)],
+    "Accept": "application/json, text/plain, */*",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Referer": "https://frontier.com/buy",
+    "Origin": "https://frontier.com",
+  };
+}
 
 app.get("/", (req, res) => res.json({ status: "ok" }));
 app.get("/health", (req, res) => res.json({ status: "ok" }));
@@ -25,7 +40,7 @@ app.get("/predictive", async (req, res) => {
   if (!address) return res.status(400).json({ error: "Missing address" });
   try {
     const url = `https://frontier.com/ol/api/v2/serviceability/predictive?address=${encodeURIComponent(address)}`;
-    const r = await fetch(url, { headers: COMMON_HEADERS });
+    const r = await fetch(url, { headers: buildHeaders() });
     const text = await r.text();
     res.set("Content-Type", "application/json");
     res.set("Access-Control-Allow-Origin", "*");
@@ -44,7 +59,7 @@ app.post("/serviceability", async (req, res) => {
     const r = await fetch("https://frontier.com/ol/api/v3/serviceability", {
       method: "POST",
       headers: {
-        ...COMMON_HEADERS,
+        ...buildHeaders(),
         "Content-Type": "application/json",
         "x-write-key": writeKey,
         "x-client-session-id": crypto.randomUUID(),
